@@ -12,7 +12,7 @@ class Base(DeclarativeBase): pass
 
 # Создание всех таблиц в базе данных
 # def init_db():
-from app.models import User, Task  # Импортируем модели
+# from app.models import User, Task  # Импортируем модели
 Base.metadata.create_all(bind=engine)
     # print("Созданы таблицы:")
     # print(Base.metadata.tables)  # Печать SQL-запросов для создания таблиц

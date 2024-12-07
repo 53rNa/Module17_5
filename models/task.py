@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.backend.db import Base
 
 
+
 class Task(Base):
     __table_args__ = {'extend_existing': True}
     __tablename__ = 'tasks'
