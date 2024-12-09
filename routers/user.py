@@ -39,7 +39,6 @@ async def create_user(user: CreateUser, db: Annotated[Session, Depends(get_db)])
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
-
     # Вставка нового пользователя в базу данных
     stmt = insert(User).values(
         username=user.username,
@@ -57,6 +56,7 @@ async def create_user(user: CreateUser, db: Annotated[Session, Depends(get_db)])
 
 @router.put("/update/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(user_id: int, user: UpdateUser, db: Session = Depends(get_db)):
+
     # Поиск пользователя по ID
     stmt = select(User).where(User.id == user_id)
     existing_user = db.execute(stmt).scalars().first()
@@ -79,17 +79,37 @@ async def update_user(user_id: int, user: UpdateUser, db: Session = Depends(get_
 
 @router.delete("/delete/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: int, db: Session = Depends(get_db)):
-    # Поиск пользователя по ID
-    stmt = select(User).where(User.id == user_id)
-    existing_user = db.execute(stmt).scalars().first()
+
+    # Поиск пользователя по ID и удаление всех связанных задач
+    stmt_tasks = select(Task).where(Task.user_id == user_id)
+
+    tasks_to_delete = db.execute(stmt_tasks).scalars().all()
+
+    # Удаление всех задач пользователя перед удалением самого пользователя
+    for task in tasks_to_delete:
+        delete_stmt = delete(Task).where(Task.id == task.id)
+        db.execute(delete_stmt)
+
+    # Удаление пользователя из базы данных
+    stmt_user = select(User).where(User.id == user_id)
+    existing_user = db.execute(stmt_user).scalars().first()
 
     if existing_user is None:
         raise HTTPException(status_code=404, detail="User was not found")
 
-    # Удаление пользователя из базы данных
-    stmt = delete(User).where(User.id == user_id)
+    delete_stmt_user = delete(User).where(User.id == user_id)
 
-    db.execute(stmt)
+    db.execute(delete_stmt_user)
     db.commit()
 
     return {'status_code': status.HTTP_204_NO_CONTENT}
+
+@router.get("/{user_id}/tasks")
+async def tasks_by_user_id(user_id: int, db: Session = Depends(get_db)):
+
+   # Получаем все задачи конкретного пользователя по его ID
+   stmt_tasks = select(Task).where(Task.user_id == user_id)
+
+   tasks = db.execute(stmt_tasks).scalars().all()
+
+   return tasks
